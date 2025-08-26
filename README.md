@@ -28,6 +28,5 @@ Una Pokédex moderna y elegante construida con **Flutter**, que consume datos de
 - **HTTP** para llamadas a la API
 - **PokeAPI** como fuente de datos
 - Widgets personalizados y responsivos
-- Animaciones con `TweenAnimationBuilder`
 - Diseño modular con buenas prácticas
 
