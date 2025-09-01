@@ -7,33 +7,38 @@ class PokemonDetail {
   @HiveField(0)
   final int id;
   @HiveField(1)
-  final String name;
+  final String speciesName; // nombre en español de la especie
   @HiveField(2)
-  final String imageUrl;
+  final String formName; // nombre interno de la forma
   @HiveField(3)
-  final String shinyImageUrl;
+  final String imageUrl;
   @HiveField(4)
-  final List<String> types;
+  final String shinyImageUrl;
   @HiveField(5)
-  final double height;
+  final List<String> types;
   @HiveField(6)
-  final double weight;
+  final double height;
   @HiveField(7)
-  final List<String> abilities;
+  final double weight;
   @HiveField(8)
-  final Map<String, int> stats;
+  final List<String> abilities;
   @HiveField(9)
-  final String description;
+  final Map<String, int> stats;
   @HiveField(10)
-  final List<String> evolutionChain;
+  final String description;
   @HiveField(11)
-  final Map<String, String> evolutionImages;
+  final List<String> evolutionChain;
   @HiveField(12)
+  final Map<String, String> evolutionImages;
+  @HiveField(13)
   final Map<String, String> abilityDescriptions;
+  @HiveField(14)
+  final Map<String, String> varieties; // nuevas variedades con imágenes
 
   PokemonDetail({
     required this.id,
-    required this.name,
+    required this.speciesName,
+    required this.formName,
     required this.imageUrl,
     required this.shinyImageUrl,
     required this.types,
@@ -45,30 +50,34 @@ class PokemonDetail {
     required this.evolutionChain,
     required this.evolutionImages,
     required this.abilityDescriptions,
+    required this.varieties,
   });
 
   factory PokemonDetail.fromJson(Map<String, dynamic> json) {
     return PokemonDetail(
       id: json['id'],
-      name: json['name'],
+      speciesName: json['speciesName'],
+      formName: json['formName'],
       imageUrl: json['imageUrl'],
       shinyImageUrl: json['shinyImageUrl'],
       types: List<String>.from(json['types']),
-      height: json['height'],
-      weight: json['weight'],
+      height: json['height'].toDouble(),
+      weight: json['weight'].toDouble(),
       abilities: List<String>.from(json['abilities']),
       stats: Map<String, int>.from(json['stats']),
       description: json['description'],
       evolutionChain: List<String>.from(json['evolutionChain']),
       evolutionImages: Map<String, String>.from(json['evolutionImages'] ?? {}),
       abilityDescriptions: Map<String, String>.from(json['abilityDescriptions'] ?? {}),
+      varieties: Map<String, String>.from(json['varieties'] ?? {}),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'name': name,
+      'speciesName': speciesName,
+      'formName': formName,
       'imageUrl': imageUrl,
       'shinyImageUrl': shinyImageUrl,
       'types': types,
@@ -80,6 +89,7 @@ class PokemonDetail {
       'evolutionChain': evolutionChain,
       'evolutionImages': evolutionImages,
       'abilityDescriptions': abilityDescriptions,
+      'varieties': varieties,
     };
   }
 }

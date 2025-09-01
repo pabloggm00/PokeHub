@@ -184,17 +184,36 @@ class _PokemonDetailScreenState extends State<PokemonDetailScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Nombre
-                  Text(
-                    widget.pokemon.name.toUpperCase(),
-                    style: AppColors.title.copyWith(
-                      fontSize: 28,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Nombre de la especie
+                      Text(
+                        widget.pokemon.speciesName.toUpperCase(),
+                        style: AppColors.title.copyWith(
+                          fontSize: 28,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // Nombre de la forma (solo si es distinto)
+                      if (widget.pokemon.formName.toLowerCase() !=
+                          widget.pokemon.speciesName.toLowerCase())
+                        Text(
+                          widget
+                              .pokemon
+                              .formName
+                              .toUpperCase(), // aquí puedes capitalizar si quieres
+                          style: AppColors.title.copyWith(
+                            fontSize: 16,
+                            color: Colors.white70,
+                            fontWeight: FontWeight.normal,
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 12),
-
                   // Tipos
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
