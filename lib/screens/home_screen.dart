@@ -29,6 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
     7: "Alola",
     8: "Galar",
     9: "Paldea",
+    10: "Variantes",
   };
 
   @override
@@ -45,7 +46,10 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      final newPokemons = await _api.fetchPokemonFromGeneration(gen);
+      final newPokemons = gen == 10
+          ? await _api.fetchVariantPokemon()
+          : await _api.fetchPokemonFromGeneration(gen);
+
       setState(() {
         _pokemons = newPokemons;
         _isLoading = false;

@@ -18,51 +18,57 @@ class PokemonDetailAdapter extends TypeAdapter<PokemonDetail> {
     };
     return PokemonDetail(
       id: fields[0] as int,
-      name: fields[1] as String,
-      imageUrl: fields[2] as String,
-      shinyImageUrl: fields[3] as String,
-      types: (fields[4] as List).cast<String>(),
-      height: fields[5] as double,
-      weight: fields[6] as double,
-      abilities: (fields[7] as List).cast<String>(),
-      stats: (fields[8] as Map).cast<String, int>(),
-      description: fields[9] as String,
-      evolutionChain: (fields[10] as List).cast<String>(),
-      evolutionImages: (fields[11] as Map).cast<String, String>(),
-      abilityDescriptions: (fields[12] as Map).cast<String, String>(),
+      speciesName: fields[1] as String,
+      formName: fields[2] as String,
+      imageUrl: fields[3] as String,
+      shinyImageUrl: fields[4] as String,
+      types: (fields[5] as List).cast<String>(),
+      height: fields[6] as double,
+      weight: fields[7] as double,
+      abilities: (fields[8] as List).cast<String>(),
+      stats: (fields[9] as Map).cast<String, int>(),
+      description: fields[10] as String,
+      evolutionChain: (fields[11] as List).cast<String>(),
+      evolutionImages: (fields[12] as Map).cast<String, String>(),
+      abilityDescriptions: (fields[13] as Map).cast<String, String>(),
+      varieties: (fields[14] as Map).cast<String, String>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, PokemonDetail obj) {
     writer
-      ..writeByte(13)
+      ..writeByte(15)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
-      ..write(obj.name)
+      ..write(obj.speciesName)
       ..writeByte(2)
-      ..write(obj.imageUrl)
+      ..write(obj.formName)
       ..writeByte(3)
-      ..write(obj.shinyImageUrl)
+      ..write(obj.imageUrl)
       ..writeByte(4)
-      ..write(obj.types)
+      ..write(obj.shinyImageUrl)
       ..writeByte(5)
-      ..write(obj.height)
+      ..write(obj.types)
       ..writeByte(6)
-      ..write(obj.weight)
+      ..write(obj.height)
       ..writeByte(7)
-      ..write(obj.abilities)
+      ..write(obj.weight)
       ..writeByte(8)
-      ..write(obj.stats)
+      ..write(obj.abilities)
       ..writeByte(9)
-      ..write(obj.description)
+      ..write(obj.stats)
       ..writeByte(10)
-      ..write(obj.evolutionChain)
+      ..write(obj.description)
       ..writeByte(11)
-      ..write(obj.evolutionImages)
+      ..write(obj.evolutionChain)
       ..writeByte(12)
-      ..write(obj.abilityDescriptions);
+      ..write(obj.evolutionImages)
+      ..writeByte(13)
+      ..write(obj.abilityDescriptions)
+      ..writeByte(14)
+      ..write(obj.varieties);
   }
 
   @override
