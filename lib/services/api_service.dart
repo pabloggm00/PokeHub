@@ -41,7 +41,7 @@ class PokeApiService {
       try {
         return Map<String, dynamic>.from(_hiveCache.get(key));
       } catch (_) {
-        _hiveCache.delete(key); // Corrupción → limpiar
+        _hiveCache.delete(key); 
       }
     }
 
