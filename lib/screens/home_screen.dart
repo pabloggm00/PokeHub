@@ -1,5 +1,6 @@
 import 'package:dex_app/screens/pokemon_detail_screen.dart';
 import 'package:dex_app/screens/search_screen.dart';
+import 'package:dex_app/screens/settings_screen.dart';
 import 'package:dex_app/services/api_service.dart';
 import 'package:dex_app/theme/app_colors.dart';
 import 'package:flutter/material.dart';
@@ -74,7 +75,19 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: AppColors.cardBackground,
         title: const Text('PokeDex', style: AppColors.title),
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+            },
+          ),
+        ],
       ),
+
       body: Column(
         children: [
           SizedBox(

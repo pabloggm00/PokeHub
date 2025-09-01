@@ -18,6 +18,10 @@ dependencies:
   flutter_launcher_icons: ^0.14.4
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+  in_app_update: ^4.2.3
+  package_info_plus: ^8.3.1
+  url_launcher: ^6.3.2
+  open_file: ^3.5.10
   
 
 dev_dependencies:
