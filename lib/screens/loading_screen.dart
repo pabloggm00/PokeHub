@@ -14,12 +14,6 @@ class LoadingScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              'assets/pokeball.png',
-              width: 100,
-              height: 100,
-              color: AppColors.selectedGen,
-            ),
             const SizedBox(height: 40),
             const CircularProgressIndicator(
               color: AppColors.selectedGen,
