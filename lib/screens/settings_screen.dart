@@ -110,7 +110,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     height: 20,
                     child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                   )
-                : Text("Actualizar a $version"),
+                : Text("Actualizar a $version", style: AppColors.typeText),
           ),
         ],
       ),

@@ -75,17 +75,17 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: AppColors.cardBackground,
         title: const Text('PokeDex', style: AppColors.title),
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              );
-            },
-          ),
-        ],
+        // actions: [
+        //   IconButton(
+        //     icon: const Icon(Icons.settings),
+        //     onPressed: () {
+        //       Navigator.push(
+        //         context,
+        //         MaterialPageRoute(builder: (_) => const SettingsScreen()),
+        //       );
+        //     },
+        //   ),
+        // ],
       ),
 
       body: Column(

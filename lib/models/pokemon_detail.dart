@@ -27,13 +27,15 @@ class PokemonDetail {
   @HiveField(10)
   final String description;
   @HiveField(11)
-  final List<String> evolutionChain;
+  final List<List<String>> evolutionChain;
   @HiveField(12)
   final Map<String, String> evolutionImages;
   @HiveField(13)
   final Map<String, String> abilityDescriptions;
   @HiveField(14)
   final Map<String, String> varieties; // nuevas variedades con imágenes
+  @HiveField(15)
+  final Map<String, String> evolutionDetails; // detalles de cómo evoluciona cada Pokémon en la cadena
 
   PokemonDetail({
     required this.id,
@@ -51,6 +53,7 @@ class PokemonDetail {
     required this.evolutionImages,
     required this.abilityDescriptions,
     required this.varieties,
+    required this.evolutionDetails,
   });
 
   factory PokemonDetail.fromJson(Map<String, dynamic> json) {
@@ -66,10 +69,12 @@ class PokemonDetail {
       abilities: List<String>.from(json['abilities']),
       stats: Map<String, int>.from(json['stats']),
       description: json['description'],
-      evolutionChain: List<String>.from(json['evolutionChain']),
+      evolutionChain: (json['evolutionChain'] as List).map((chain) => 
+        List<String>.from(chain as List)).toList(),
       evolutionImages: Map<String, String>.from(json['evolutionImages'] ?? {}),
       abilityDescriptions: Map<String, String>.from(json['abilityDescriptions'] ?? {}),
       varieties: Map<String, String>.from(json['varieties'] ?? {}),
+      evolutionDetails: Map<String, String>.from(json['evolutionDetails'] ?? {}),
     );
   }
 
@@ -90,6 +95,7 @@ class PokemonDetail {
       'evolutionImages': evolutionImages,
       'abilityDescriptions': abilityDescriptions,
       'varieties': varieties,
+      'evolutionDetails': evolutionDetails,
     };
   }
 }

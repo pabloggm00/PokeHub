@@ -13,6 +13,110 @@ class PokemonDetailScreen extends StatefulWidget {
 class _PokemonDetailScreenState extends State<PokemonDetailScreen> {
   bool showShiny = false;
 
+  bool _isValidImageUrl(String url) {
+    if (url.isEmpty) return false;
+    return url.startsWith('http://') || url.startsWith('https://');
+  }
+
+  List<Widget> _buildEvolutionChainForList(List<String> chain) {
+    List<Widget> evolutionWidgets = [];
+    
+    for (int i = 0; i < chain.length; i++) {
+      final name = chain[i];
+      final imageUrl = widget.pokemon.evolutionImages[name] ?? '';
+
+      // Agregar el Pokémon
+      evolutionWidgets.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                height: 70,
+                width: 70,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.white.withOpacity(0.2),
+                      Colors.white.withOpacity(0.05),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: _isValidImageUrl(imageUrl)
+                      ? Image.network(
+                          imageUrl,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const SizedBox.shrink();
+                          },
+                        )
+                      : const SizedBox.shrink(),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                name.toUpperCase(),
+                style: AppColors.typeText.copyWith(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+
+      // Si hay un siguiente Pokémon en la cadena, mostrar la condición de evolución
+      if (i < chain.length - 1) {
+        final evolutionDetail = widget.pokemon.evolutionDetails[name] ?? '';
+        evolutionWidgets.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.arrow_forward,
+                  color: Colors.white70,
+                  size: 20,
+                ),
+                if (evolutionDetail.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      evolutionDetail,
+                      style: AppColors.typeText.copyWith(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      }
+    }
+
+    return evolutionWidgets;
+  }
+
   void _showAbilityDescription(String abilityName, String description) {
     showDialog(
       context: context,
@@ -152,12 +256,25 @@ class _PokemonDetailScreenState extends State<PokemonDetailScreen> {
                           ),
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
-                            child: Image.network(
-                              showShiny
-                                  ? widget.pokemon.shinyImageUrl
-                                  : widget.pokemon.imageUrl,
-                              fit: BoxFit.contain,
-                            ),
+                            child: _isValidImageUrl(showShiny
+                                    ? widget.pokemon.shinyImageUrl
+                                    : widget.pokemon.imageUrl)
+                                ? Image.network(
+                                    showShiny
+                                        ? widget.pokemon.shinyImageUrl
+                                        : widget.pokemon.imageUrl,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const Center(
+                                        child: Icon(Icons.image_not_supported,
+                                            color: Colors.grey, size: 60),
+                                      );
+                                    },
+                                  )
+                                : const Center(
+                                    child: Icon(Icons.image_not_supported,
+                                        color: Colors.grey, size: 60),
+                                  ),
                           ),
                         ),
                       ),
@@ -204,7 +321,7 @@ class _PokemonDetailScreenState extends State<PokemonDetailScreen> {
                           widget
                               .pokemon
                               .formName
-                              .toUpperCase(), // aquí puedes capitalizar si quieres
+                              .toUpperCase(),
                           style: AppColors.title.copyWith(
                             fontSize: 16,
                             color: Colors.white70,
@@ -419,7 +536,7 @@ class _PokemonDetailScreenState extends State<PokemonDetailScreen> {
 
                   // Línea evolutiva como Card con imágenes
                   const SizedBox(height: 24),
-                  if (widget.pokemon.evolutionChain.length > 1)
+                  if (widget.pokemon.evolutionChain.isNotEmpty)
                     Card(
                       color: Colors.black87,
                       shape: RoundedRectangleBorder(
@@ -428,8 +545,6 @@ class _PokemonDetailScreenState extends State<PokemonDetailScreen> {
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
                               'Evolución',
@@ -438,56 +553,28 @@ class _PokemonDetailScreenState extends State<PokemonDetailScreen> {
                               ),
                             ),
                             const SizedBox(height: 12),
-                            SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Row(
-                                children: widget.pokemon.evolutionChain.map((
-                                  name,
-                                ) {
-                                  final imageUrl =
-                                      widget.pokemon.evolutionImages[name] ??
-                                      '';
-                                  return Padding(
-                                    padding: const EdgeInsets.only(right: 12),
-                                    child: Column(
-                                      children: [
-                                        Container(
-                                          height: 80,
-                                          width: 80,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            gradient: LinearGradient(
-                                              colors: [
-                                                Colors.white.withOpacity(0.2),
-                                                Colors.white.withOpacity(0.05),
-                                              ],
-                                              begin: Alignment.topLeft,
-                                              end: Alignment.bottomRight,
-                                            ),
-                                          ),
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: imageUrl.isNotEmpty
-                                                ? Image.network(
-                                                    imageUrl,
-                                                    fit: BoxFit.contain,
-                                                  )
-                                                : const SizedBox.shrink(),
-                                          ),
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                return Column(
+                                  children: widget.pokemon.evolutionChain.map((chain) {
+                                    return Container(
+                                      margin: const EdgeInsets.only(bottom: 16),
+                                      constraints: BoxConstraints(
+                                        maxWidth: constraints.maxWidth,
+                                      ),
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        alignment: Alignment.center,
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: _buildEvolutionChainForList(chain),
                                         ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          name.toUpperCase(),
-                                          style: AppColors.typeText.copyWith(
-                                            color: Colors.white,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                );
+                              },
                             ),
                           ],
                         ),

@@ -120,14 +120,31 @@ class PokeApiService {
       final description = _descriptionService.getSpanishDescription(
         speciesData,
       );
-      final evolutionChain = await _evolutionService
-          .getEvolutionChainWithImages(speciesData);
+      final (evolutionChainsRaw, evolutionImages, evolutionDetails) = await _evolutionService
+          .getEvolutionChainWithImagesAndDetails(speciesData);
+
+      // Convertir las cadenas evolutivas al tipo correcto y asegurar que son List<List<String>>
+      final List<List<String>> evolutionChains = evolutionChainsRaw
+          .map((chain) => (chain as List).map((name) => name.toString()).toList())
+          .toList();
+
+      // Eliminar duplicados manteniendo el orden
+      final List<List<String>> uniqueChains = [];
+      for (var chain in evolutionChains) {
+        if (!uniqueChains.any((existing) => 
+          existing.length == chain.length && 
+          existing.every((item) => chain.contains(item)))) {
+          uniqueChains.add(chain);
+        }
+      }
+
+      // Asegurar que siempre hay al menos una cadena evolutiva vacía
+      final List<List<String>> evolutionChain = uniqueChains.isNotEmpty ? uniqueChains : [[]];
 
       // Formas/varieties
       final varietiesMap = <String, String>{};
       for (var v in speciesData['varieties']) {
         final formName = v['pokemon']['name'];
-        final isDefault = v['is_default'] as bool;
         final details = await _fetchWithCache('$_baseUrl/pokemon/$formName');
         final image =
             details['sprites']['other']?['official-artwork']?['front_default'] ??
@@ -148,8 +165,8 @@ class PokeApiService {
           '';
 
       return PokemonDetail(
-        id: pokemonData['id'],
-        speciesName: pokemonData['species']['name'],
+        id: pokemonData['id'] as int,
+        speciesName: pokemonData['species']['name'] as String,
         formName: formName,
         imageUrl: imageUrl,
         shinyImageUrl: shinyImageUrl,
@@ -165,10 +182,11 @@ class PokeApiService {
           ),
         ),
         description: description,
-        evolutionChain: evolutionChain.keys.toList(),
-        evolutionImages: evolutionChain,
-        abilityDescriptions: abilitiesWithDescriptions,
-        varieties: varietiesMap,
+        evolutionChain: evolutionChain,
+        evolutionImages: Map<String, String>.from(evolutionImages),
+        abilityDescriptions: Map<String, String>.from(abilitiesWithDescriptions),
+        varieties: Map<String, String>.from(varietiesMap),
+        evolutionDetails: Map<String, String>.from(evolutionDetails),
       );
     } catch (e) {
       throw Exception('Error al cargar detalles del Pokémon con ID $id: $e');

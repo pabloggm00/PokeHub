@@ -28,17 +28,20 @@ class PokemonDetailAdapter extends TypeAdapter<PokemonDetail> {
       abilities: (fields[8] as List).cast<String>(),
       stats: (fields[9] as Map).cast<String, int>(),
       description: fields[10] as String,
-      evolutionChain: (fields[11] as List).cast<String>(),
+      evolutionChain: (fields[11] as List)
+          .map((dynamic e) => (e as List).cast<String>())
+          .toList(),
       evolutionImages: (fields[12] as Map).cast<String, String>(),
       abilityDescriptions: (fields[13] as Map).cast<String, String>(),
       varieties: (fields[14] as Map).cast<String, String>(),
+      evolutionDetails: (fields[15] as Map).cast<String, String>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, PokemonDetail obj) {
     writer
-      ..writeByte(15)
+      ..writeByte(16)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -68,7 +71,9 @@ class PokemonDetailAdapter extends TypeAdapter<PokemonDetail> {
       ..writeByte(13)
       ..write(obj.abilityDescriptions)
       ..writeByte(14)
-      ..write(obj.varieties);
+      ..write(obj.varieties)
+      ..writeByte(15)
+      ..write(obj.evolutionDetails);
   }
 
   @override
