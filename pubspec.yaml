@@ -1,7 +1,7 @@
 name: dex_app
-description: "A new Flutter project."
+description: "PokeHub - A Flutter application to explore Pokemon data."
 publish_to: 'none'
-version: 1.0.2
+version: 1.0.3
 
 environment:
   sdk: ^3.8.1

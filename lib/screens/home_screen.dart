@@ -73,7 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.cardBackground,
-        title: const Text('PokeDex', style: AppColors.title),
+        title: const Text('PokeHub', style: AppColors.title),
         elevation: 0,
         // actions: [
         //   IconButton(
