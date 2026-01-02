@@ -16,12 +16,28 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   String? _latestVersion;
+  String? _currentVersion;
   String? _apkUrl;
   bool _checking = false;
   bool _downloading = false;
 
   final String versionJsonUrl =
       "https://raw.githubusercontent.com/pabloggm00/PokeHub/main/version.json";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentVersion();
+  }
+
+  Future<void> _loadCurrentVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      setState(() => _currentVersion = info.version);
+    } catch (e) {
+      _showMessage("Error cargando versión actual: $e");
+    }
+  }
 
   Future<void> _checkUpdate() async {
     setState(() => _checking = true);
@@ -32,16 +48,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _latestVersion = jsonData['latest_version'];
         _apkUrl = jsonData['apk_url'];
 
-        final info = await PackageInfo.fromPlatform();
-        final currentVersion = info.version;
-
         if (_latestVersion == null || _apkUrl == null) {
           _showMessage("No se pudo obtener información de la versión");
-        } else if (_latestVersion == currentVersion) {
-          _showMessage("La app ya está actualizada");
-        } else {
-          _showUpdateDialog(_latestVersion!, _apkUrl!);
+        } else if (_latestVersion == _currentVersion) {
+          _showMessage("✓ La app ya está actualizada");
         }
+        setState(() {});
       } else {
         _showMessage("Error al consultar actualización");
       }
@@ -52,7 +64,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _downloadAndInstall(String url) async {
+  Future<void> _downloadAndInstall(String? url) async {
+    if (url == null) {
+      _showMessage("URL de descarga no disponible");
+      return;
+    }
     setState(() => _downloading = true);
     try {
       final response = await http.get(Uri.parse(url));
@@ -79,67 +95,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showUpdateDialog(String version, String url) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.cardBackground,
-        title: const Text("Actualización disponible",
-            style: TextStyle(color: Colors.white)),
-        content: Text(
-          "Una nueva versión ($version) está disponible. ¿Deseas actualizar?",
-          style: const TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            style: TextButton.styleFrom(foregroundColor: Colors.white),
-            child: const Text("Cancelar"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _downloadAndInstall(url);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.selectedGen,
-            ),
-            child: _downloading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                  )
-                : Text("Actualizar a $version", style: AppColors.typeText),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    bool updateAvailable =
+        _latestVersion != null && _latestVersion != _currentVersion;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.cardBackground,
         title: const Text("Configuración", style: AppColors.title),
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white), // botón atrás blanco
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Center(
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.selectedGen,
-            minimumSize: const Size(220, 45),
-          ),
-          onPressed: _checking ? null : _checkUpdate,
-          child: _checking
-              ? const CircularProgressIndicator(color: Colors.white)
-              : const Text(
-                  "Buscar actualización",
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor:
+                    updateAvailable ? AppColors.selectedGen : Colors.grey,
+                minimumSize: const Size(220, 45),
+              ),
+              onPressed: updateAvailable && !_downloading ? () => _downloadAndInstall(_apkUrl) : null,
+              child: _downloading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2),
+                    )
+                  : Text(
+                      updateAvailable
+                          ? "Actualizar a $_latestVersion"
+                          : "Ya está actualizada",
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+            ),
+            const SizedBox(height: 30),
+            Text(
+              "v${_currentVersion ?? "..."}",
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+          ],
         ),
       ),
     );
