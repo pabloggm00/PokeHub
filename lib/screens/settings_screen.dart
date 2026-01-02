@@ -28,6 +28,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _loadCurrentVersion();
+    _checkUpdate();
   }
 
   Future<void> _loadCurrentVersion() async {
