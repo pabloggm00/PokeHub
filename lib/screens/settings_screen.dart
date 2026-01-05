@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:dex_app/l10n/app_localizations.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
@@ -18,7 +19,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _latestVersion;
   String? _currentVersion;
   String? _apkUrl;
-  bool _checking = false;
   bool _downloading = false;
 
   final String versionJsonUrl =
@@ -36,12 +36,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final info = await PackageInfo.fromPlatform();
       setState(() => _currentVersion = info.version);
     } catch (e) {
-      _showMessage("Error cargando versión actual: $e");
+      if (mounted) _showMessage(AppLocalizations.of(context)!.errorLoadingVersion(e.toString()));
     }
   }
 
   Future<void> _checkUpdate() async {
-    setState(() => _checking = true);
     try {
       final response = await http.get(Uri.parse(versionJsonUrl));
       if (response.statusCode == 200) {
@@ -50,24 +49,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _apkUrl = jsonData['apk_url'];
 
         if (_latestVersion == null || _apkUrl == null) {
-          _showMessage("No se pudo obtener información de la versión");
+          if (mounted) _showMessage(AppLocalizations.of(context)!.couldNotGetVersionInfo);
         } else if (_latestVersion == _currentVersion) {
-          _showMessage("✓ La app ya está actualizada");
+          if (mounted) _showMessage(AppLocalizations.of(context)!.appIsUpToDate);
         }
         setState(() {});
       } else {
-        _showMessage("Error al consultar actualización");
+        if (mounted) _showMessage(AppLocalizations.of(context)!.errorCheckingUpdate);
       }
     } catch (e) {
-      _showMessage("Error: $e");
-    } finally {
-      setState(() => _checking = false);
+      if (mounted) _showMessage(AppLocalizations.of(context)!.errorGeneral(e.toString()));
     }
   }
 
   Future<void> _downloadAndInstall(String? url) async {
     if (url == null) {
-      _showMessage("URL de descarga no disponible");
+      if (mounted) _showMessage(AppLocalizations.of(context)!.downloadUrlNotAvailable);
       return;
     }
     setState(() => _downloading = true);
@@ -81,7 +78,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       await OpenFile.open(file.path);
     } catch (e) {
-      _showMessage("Error descargando APK: $e");
+      if (mounted) _showMessage(AppLocalizations.of(context)!.errorDownloadingApk(e.toString()));
     } finally {
       setState(() => _downloading = false);
     }
@@ -105,7 +102,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.cardBackground,
-        title: const Text("Configuración", style: AppColors.title),
+        title: Text(AppLocalizations.of(context)!.settings, style: AppColors.title),
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -129,8 +126,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     )
                   : Text(
                       updateAvailable
-                          ? "Actualizar a $_latestVersion"
-                          : "Ya está actualizada",
+                          ? AppLocalizations.of(context)!.updateToVersion(_latestVersion!)
+                          : AppLocalizations.of(context)!.alreadyUpdated,
                       style: const TextStyle(
                           color: Colors.white, fontWeight: FontWeight.bold),
                     ),

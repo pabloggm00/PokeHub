@@ -19,7 +19,7 @@ class AppColors {
     'normal': Color(0xFF9E9E9E),
     'fire': Color(0xFFFF7043),
     'water': Color(0xFF42A5F5),
-    'electric': Color(0xFFFFEB3B),
+    'electric': Color(0xFFF4D35E),
     'grass': Color(0xFF66BB6A),
     'ice': Color(0xFF4DD0E1),
     'fighting': Color(0xFFD32F2F),
@@ -38,6 +38,13 @@ class AppColors {
 
   // Gradiente según tipos
   static LinearGradient typeGradient(List<String> types) {
+    if (types.isEmpty) {
+      return LinearGradient(
+        colors: [Colors.grey.withOpacity(0.7), Colors.grey.withOpacity(0.95)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      );
+    }
     Color start = typeColors[types[0].toLowerCase()] ?? Colors.grey;
     Color end = start;
     if (types.length > 1) {

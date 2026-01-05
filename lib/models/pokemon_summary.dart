@@ -1,20 +1,13 @@
-import 'package:hive/hive.dart';
-
-part 'pokemon_summary.g.dart';
-
-@HiveType(typeId: 0)
 class PokemonSummary {
-  @HiveField(0)
   final int id;
-  @HiveField(1)
+  final int nationalDexNumber;
   final String name;
-  @HiveField(2)
   final String imageUrl;
-  @HiveField(3)
   final List<String> types;
 
   PokemonSummary({
     required this.id,
+    required this.nationalDexNumber,
     required this.name,
     required this.imageUrl,
     required this.types,
@@ -23,6 +16,7 @@ class PokemonSummary {
   factory PokemonSummary.fromJson(Map<String, dynamic> json) {
     return PokemonSummary(
       id: json['id'],
+      nationalDexNumber: json['nationalDexNumber'],
       name: json['name'],
       imageUrl: json['imageUrl'],
       types: List<String>.from(json['types']),
@@ -32,6 +26,7 @@ class PokemonSummary {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'nationalDexNumber': nationalDexNumber,
       'name': name,
       'imageUrl': imageUrl,
       'types': types,

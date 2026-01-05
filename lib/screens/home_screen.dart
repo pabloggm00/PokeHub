@@ -1,78 +1,76 @@
 import 'package:dex_app/screens/pokemon_detail_screen.dart';
 import 'package:dex_app/screens/search_screen.dart';
 import 'package:dex_app/screens/settings_screen.dart';
-import 'package:dex_app/services/api_service.dart';
+import 'package:dex_app/services/database_service.dart';
+import 'package:dex_app/services/type_translator.dart';
 import 'package:dex_app/theme/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:dex_app/l10n/app_localizations.dart';
 import '../models/pokemon_summary.dart';
 import '../widgets/pokemon_card.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final int languageId;
+  final VoidCallback onLanguageToggle;
+  
+  const HomeScreen({
+    super.key,
+    required this.languageId,
+    required this.onLanguageToggle,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final PokeApiService _api = PokeApiService();
+  final DatabaseService _dbService = DatabaseService();
   List<PokemonSummary> _allPokemons = [];
   List<PokemonSummary> _filteredPokemons = [];
   int? _selectedGen;
+  int? _selectedRegion;
   String? _selectedType;
   bool _isLoading = false;
 
-  final Map<int, String> _genNames = {
-    1: "Kanto",
-    2: "Johto",
-    3: "Hoenn",
-    4: "Sinnoh",
-    5: "Unova",
-    6: "Kalos",
-    7: "Alola",
-    8: "Galar",
-    9: "Paldea",
-    10: "Variantes",
-  };
-
-  final List<String> _types = [
-    "normal", "fire", "water", "electric", "grass", "ice",
-    "fighting", "poison", "ground", "flying", "psychic", "bug",
-    "rock", "ghost", "dragon", "dark", "steel", "fairy"
-  ];
-
-  final Map<String, String> _typeTranslations = {
-    "normal": "Normal",
-    "fire": "Fuego",
-    "water": "Agua",
-    "electric": "Eléctrico",
-    "grass": "Planta",
-    "ice": "Hielo",
-    "fighting": "Lucha",
-    "poison": "Veneno",
-    "ground": "Tierra",
-    "flying": "Volador",
-    "psychic": "Psíquico",
-    "bug": "Bicho",
-    "rock": "Roca",
-    "ghost": "Fantasma",
-    "dragon": "Dragón",
-    "dark": "Siniestro",
-    "steel": "Acero",
-    "fairy": "Hada",
-  };
+  Map<int, String> _genNames = {};
+  Map<int, String> _regionNames = {};
+  Map<String, String> _typeTranslations = {};
+  List<String> _types = [];
 
   @override
   void initState() {
     super.initState();
-    _loadAllPokemon();
+    _loadData();
   }
 
-  Future<void> _loadAllPokemon() async {
+  @override
+  void didUpdateWidget(HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.languageId != widget.languageId) {
+      _loadData();
+    }
+  }
+
+  Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
     try {
-      final allPokemon = await _api.getAllPokemon();
+      // Cargar generaciones, regiones y tipos desde la BD
+      _genNames = await _dbService.getGenerations(widget.languageId);
+      _regionNames = await _dbService.getRegions(widget.languageId);
+      _typeTranslations = await _dbService.getTypes(widget.languageId);
+      _types = _typeTranslations.keys.toList();
+
+      // Establecer traducciones globales
+      TypeTranslator.setTranslations(_typeTranslations);
+      
+      // Cargar traducciones de stats
+      final statTranslations = await _dbService.getStats(widget.languageId);
+      StatTranslator.setTranslations(statTranslations);
+
+      // Cargar todos los Pokémon
+      final allPokemon = await _dbService.getAllPokemon(widget.languageId);
+      
       setState(() {
         _allPokemons = allPokemon;
         _applyFilters();
@@ -80,46 +78,74 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     } catch (e) {
       setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.errorLoadingData(e.toString()))),
+        );
+      }
     }
   }
 
-  void _applyFilters() {
-    List<PokemonSummary> filtered = List.from(_allPokemons);
+  void _applyFilters() async {
+    setState(() => _isLoading = true);
 
-    // Filtrar por generación
-    if (_selectedGen != null) {
-      if (_selectedGen == 10) {
-        filtered = filtered.where((p) => p.id >= 10001).toList();
+    try {
+      List<PokemonSummary> filtered;
+
+      if (_selectedRegion != null && _selectedType != null) {
+        // Filtrar por región y tipo
+        filtered = await _dbService.getPokemonByRegion(_selectedRegion!, widget.languageId);
+        filtered = filtered.where((p) => p.types.contains(_selectedType)).toList();
+      } else if (_selectedRegion != null) {
+        // Solo por región
+        filtered = await _dbService.getPokemonByRegion(_selectedRegion!, widget.languageId);
+      } else if (_selectedType != null) {
+        // Solo por tipo
+        filtered = await _dbService.getPokemonByType(_selectedType!, widget.languageId);
       } else {
-        // Rangos aproximados de cada generación
-        final genRanges = {
-          1: [1, 151],
-          2: [152, 251],
-          3: [252, 386],
-          4: [387, 493],
-          5: [494, 649],
-          6: [650, 721],
-          7: [722, 809],
-          8: [810, 905],
-          9: [906, 1025],
-        };
-        final range = genRanges[_selectedGen];
-        if (range != null) {
-          filtered = filtered.where((p) => p.id >= range[0] && p.id <= range[1]).toList();
-        }
+        // Sin filtros
+        filtered = _allPokemons;
       }
-    }
+      
+      // Filtrar por generación si está seleccionada
+      if (_selectedGen != null) {
+        filtered = filtered.where((p) {
+          // Filtrar por national_dex_number según la generación
+          final dex = p.nationalDexNumber;
+          switch (_selectedGen!) {
+            case 1: return dex >= 1 && dex <= 151;
+            case 2: return dex >= 152 && dex <= 251;
+            case 3: return dex >= 252 && dex <= 386;
+            case 4: return dex >= 387 && dex <= 493;
+            case 5: return dex >= 494 && dex <= 649;
+            case 6: return dex >= 650 && dex <= 721;
+            case 7: return dex >= 722 && dex <= 809;
+            case 8: return dex >= 810 && dex <= 905;
+            case 9: return dex >= 906 && dex <= 1025;
+            default: return true;
+          }
+        }).toList();
+      }
 
-    // Filtrar por tipo
-    if (_selectedType != null) {
-      filtered = filtered.where((p) => p.types.contains(_selectedType)).toList();
+      setState(() {
+        _filteredPokemons = filtered;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _filteredPokemons = [];
+        _isLoading = false;
+      });
     }
-
-    setState(() => _filteredPokemons = filtered);
   }
 
   Future<void> _loadGeneration(int? gen) async {
     setState(() => _selectedGen = gen);
+    _applyFilters();
+  }
+
+  Future<void> _loadRegion(int? region) async {
+    setState(() => _selectedRegion = region);
     _applyFilters();
   }
 
@@ -131,8 +157,12 @@ class _HomeScreenState extends State<HomeScreen> {
   void _navigateToSearchScreen() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => SearchScreen(apiService: _api)),
+      MaterialPageRoute(builder: (context) => SearchScreen(dbService: _dbService)),
     );
+  }
+
+  void _toggleLanguage() {
+    widget.onLanguageToggle();
   }
 
   @override
@@ -141,9 +171,14 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.cardBackground,
-        title: const Text('PokeHub', style: AppColors.title),
+        title: Text(AppLocalizations.of(context)!.appTitle, style: AppColors.title),
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.language),
+            onPressed: _toggleLanguage,
+            tooltip: widget.languageId == 1 ? AppLocalizations.of(context)!.spanish : AppLocalizations.of(context)!.english,
+          ),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
@@ -162,104 +197,161 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             color: AppColors.cardBackground,
             padding: const EdgeInsets.all(16),
-            child: Row(
+            child: Column(
               children: [
-                // Filtro de Región
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Región",
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: AppColors.unselectedGen,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: DropdownButton<int?>(
-                          value: _selectedGen,
-                          isExpanded: true,
-                          underline: const SizedBox(),
-                          dropdownColor: AppColors.cardBackground,
-                          style: const TextStyle(color: Colors.white),
-                          hint: const Text(
-                            "Todas",
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          items: [
-                            const DropdownMenuItem<int?>(
-                              value: null,
-                              child: Text("Todas"),
+                Row(
+                  children: [
+                    // Filtro de Generación
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Generación',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
                             ),
-                            ..._genNames.entries.map((entry) {
-                              return DropdownMenuItem<int?>(
-                                value: entry.key,
-                                child: Text(entry.value),
-                              );
-                            }),
-                          ],
-                          onChanged: (value) => _loadGeneration(value),
-                        ),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: AppColors.unselectedGen,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: DropdownButton<int?>(
+                              value: _selectedGen,
+                              isExpanded: true,
+                              underline: const SizedBox(),
+                              dropdownColor: AppColors.cardBackground,
+                              style: const TextStyle(color: Colors.white),
+                              hint: Text(
+                                AppLocalizations.of(context)!.all,
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                              items: [
+                                DropdownMenuItem<int?>(
+                                  value: null,
+                                  child: Text(AppLocalizations.of(context)!.all),
+                                ),
+                                ..._genNames.entries.map((entry) {
+                                  return DropdownMenuItem<int?>(
+                                    value: entry.key,
+                                    child: Text(entry.value),
+                                  );
+                                }),
+                              ],
+                              onChanged: (value) => _loadGeneration(value),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Filtro de Región
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            AppLocalizations.of(context)!.region,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: AppColors.unselectedGen,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: DropdownButton<int?>(
+                              value: _selectedRegion,
+                              isExpanded: true,
+                              underline: const SizedBox(),
+                              dropdownColor: AppColors.cardBackground,
+                              style: const TextStyle(color: Colors.white),
+                              hint: Text(
+                                AppLocalizations.of(context)!.all,
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                              items: [
+                                DropdownMenuItem<int?>(
+                                  value: null,
+                                  child: Text(AppLocalizations.of(context)!.all),
+                                ),
+                                ..._regionNames.entries.map((entry) {
+                                  return DropdownMenuItem<int?>(
+                                    value: entry.key,
+                                    child: Text(entry.value),
+                                  );
+                                }),
+                              ],
+                              onChanged: (value) => _loadRegion(value),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(height: 12),
                 // Filtro de Tipo
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Tipo",
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: AppColors.unselectedGen,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: DropdownButton<String?>(
-                          value: _selectedType,
-                          isExpanded: true,
-                          underline: const SizedBox(),
-                          dropdownColor: AppColors.cardBackground,
-                          style: const TextStyle(color: Colors.white),
-                          hint: const Text(
-                            "Todos",
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          items: [
-                            const DropdownMenuItem<String?>(
-                              value: null,
-                              child: Text("Todos"),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            AppLocalizations.of(context)!.type,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
                             ),
-                            ..._types.map((type) {
-                              return DropdownMenuItem<String?>(
-                                value: type,
-                                child: Text(_typeTranslations[type] ?? type),
-                              );
-                            }),
-                          ],
-                          onChanged: (value) => _selectType(value),
-                        ),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: AppColors.unselectedGen,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: DropdownButton<String?>(
+                              value: _selectedType,
+                              isExpanded: true,
+                              underline: const SizedBox(),
+                              dropdownColor: AppColors.cardBackground,
+                              style: const TextStyle(color: Colors.white),
+                              hint: Text(
+                                AppLocalizations.of(context)!.allTypes,
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                              items: [
+                                DropdownMenuItem<String?>(
+                                  value: null,
+                                  child: Text(AppLocalizations.of(context)!.allTypes),
+                                ),
+                                ..._types.map((type) {
+                                  return DropdownMenuItem<String?>(
+                                    value: type,
+                                    child: Text(_typeTranslations[type] ?? type),
+                                  );
+                                }),
+                              ],
+                              onChanged: (value) => _selectType(value),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -272,27 +364,47 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: AppColors.selectedGen,
                     ),
                   )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: _filteredPokemons.length,
-                    itemBuilder: (context, index) {
-                      return PokemonCard(
-                        pokemon: _filteredPokemons[index],
-                        onTap: () async {
-                          final details = await _api.fetchPokemonDetails(
-                            _filteredPokemons[index].id,
-                          );
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  PokemonDetailScreen(pokemon: details),
-                            ),
+                : _filteredPokemons.isEmpty
+                    ? Center(
+                        child: Text(
+                          AppLocalizations.of(context)!.noPokemonAvailable,
+                          style: const TextStyle(color: Colors.white70, fontSize: 16),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: _filteredPokemons.length,
+                        itemBuilder: (context, index) {
+                          return PokemonCard(
+                            pokemon: _filteredPokemons[index],
+                            onTap: () async {
+                              try {
+                                final details = await _dbService.getPokemonDetails(
+                                  _filteredPokemons[index].id,
+                                  widget.languageId,
+                                );
+                                if (mounted) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          PokemonDetailScreen(pokemon: details),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(AppLocalizations.of(context)!.errorLoadingDetails(e.toString())),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
                           );
                         },
-                      );
-                    },
-                  ),
+                      ),
           ),
         ],
       ),

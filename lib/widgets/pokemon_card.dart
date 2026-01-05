@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/pokemon_summary.dart';
+import '../services/type_translator.dart';
 import '../theme/app_colors.dart';
 
 class PokemonCard extends StatelessWidget {
@@ -7,6 +8,19 @@ class PokemonCard extends StatelessWidget {
   final VoidCallback? onTap; // Callback para detalle
 
   const PokemonCard({super.key, required this.pokemon, this.onTap});
+
+  Widget _buildPlaceholder() {
+    return Image.asset(
+      "assets/imagenes/placeholder.png",
+      fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          color: Colors.black12,
+          child: const Icon(Icons.image_not_supported, color: Colors.white30),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,22 +49,26 @@ class PokemonCard extends StatelessWidget {
                 topLeft: Radius.circular(16),
                 bottomLeft: Radius.circular(16),
               ),
-              child: Image.network(
-                pokemon.imageUrl,
+              child: Container(
                 height: 70,
                 width: 70,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return const SizedBox(
-                    height: 70,
-                    width: 70,
-                    child: Center(
-                        child: CircularProgressIndicator(strokeWidth: 2)),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) =>
-                    const Icon(Icons.error_outline, size: 70, color: Colors.red),
+                color: Colors.black12,
+                child: Builder(
+                  builder: (context) {
+                    // Mostrar en consola la ruta de la imagen
+                    // ignore: avoid_print
+                    //print('PokemonCard imageUrl: \\${pokemon.imageUrl}');
+                    return pokemon.imageUrl.isNotEmpty
+                        ? Image.asset(
+                            pokemon.imageUrl,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              return _buildPlaceholder();
+                            },
+                          )
+                        : _buildPlaceholder();
+                  },
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -59,7 +77,7 @@ class PokemonCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('#${pokemon.id.toString().padLeft(3, '0')}',
+                  Text('#${pokemon.nationalDexNumber.toString().padLeft(3, '0')}',
                       style: AppColors.subtitle.copyWith(fontSize: 11)),
                   const SizedBox(height: 2),
                   Text(pokemon.name.toUpperCase(),
@@ -76,7 +94,7 @@ class PokemonCard extends StatelessWidget {
                               AppColors.typeColors[type.toLowerCase()] ?? Colors.grey,
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Text(type.toUpperCase(),
+                        child: Text(TypeTranslator.translate(type).toUpperCase(),
                             style: AppColors.typeText.copyWith(fontSize: 9)),
                       );
                     }).toList(),

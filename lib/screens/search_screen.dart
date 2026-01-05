@@ -1,14 +1,15 @@
+import 'package:dex_app/services/database_service.dart';
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
+import 'package:dex_app/l10n/app_localizations.dart';
 import '../models/pokemon_summary.dart';
 import '../widgets/pokemon_card.dart';
 import '../theme/app_colors.dart';
 import 'pokemon_detail_screen.dart';
 
 class SearchScreen extends StatefulWidget {
-  final PokeApiService apiService;
+  final DatabaseService dbService;
 
-  const SearchScreen({super.key, required this.apiService});
+  const SearchScreen({super.key, required this.dbService});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -41,7 +42,7 @@ class _SearchScreenState extends State<SearchScreen> {
     });
 
     try {
-      final allPokemon = await widget.apiService.getAllPokemon();
+      final allPokemon = await widget.dbService.getAllPokemon();
 
       setState(() {
         _allPokemon = allPokemon;
@@ -92,7 +93,7 @@ class _SearchScreenState extends State<SearchScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.cardBackground,
-        title: const Text('Buscar Pokémon', style: AppColors.title),
+        title: Text(AppLocalizations.of(context)!.searchPokemon, style: AppColors.title),
         elevation: 0,
       ),
       body: Column(
@@ -107,7 +108,7 @@ class _SearchScreenState extends State<SearchScreen> {
               },
               style: const TextStyle(color: AppColors.primaryText),
               decoration: InputDecoration(
-                hintText: 'Buscar por nombre o ID...',
+                hintText: AppLocalizations.of(context)!.searchByNameOrId,
                 hintStyle: const TextStyle(color: AppColors.secondaryText),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
@@ -143,12 +144,12 @@ class _SearchScreenState extends State<SearchScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '${_filteredPokemon.length} Pokémon',
+                  AppLocalizations.of(context)!.pokemonCount(_filteredPokemon.length),
                   style: AppColors.subtitle.copyWith(fontSize: 14),
                 ),
                 if (_searchController.text.isNotEmpty)
                   Text(
-                    'Buscando: "${_searchController.text}"',
+                    AppLocalizations.of(context)!.searching(_searchController.text),
                     style: AppColors.subtitle.copyWith(fontSize: 12),
                   ),
               ],
@@ -166,13 +167,13 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildContent() {
     if (_isLoading) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(color: AppColors.selectedGen),
-            SizedBox(height: 16),
-            Text('Cargando todos los Pokémon...', style: AppColors.title),
+            const CircularProgressIndicator(color: AppColors.selectedGen),
+            const SizedBox(height: 16),
+            Text(AppLocalizations.of(context)!.loadingAllPokemon, style: AppColors.title),
           ],
         ),
       );
@@ -189,16 +190,16 @@ class _SearchScreenState extends State<SearchScreen> {
               color: AppColors.accentText,
             ),
             const SizedBox(height: 16),
-            const Text('Error al cargar Pokémon', style: AppColors.title),
+            Text(AppLocalizations.of(context)!.errorLoadingPokemon, style: AppColors.title),
             const SizedBox(height: 8),
             ElevatedButton(
               onPressed: _retryLoading,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.selectedGen,
               ),
-              child: const Text(
-                'Reintentar',
-                style: TextStyle(color: Colors.white),
+              child: Text(
+                AppLocalizations.of(context)!.retry,
+                style: const TextStyle(color: Colors.white),
               ),
             ),
           ],
@@ -219,8 +220,8 @@ class _SearchScreenState extends State<SearchScreen> {
             const SizedBox(height: 16),
             Text(
               _searchController.text.isEmpty
-                  ? 'No hay Pokémon para mostrar'
-                  : 'No se encontraron Pokémon\ncon "${_searchController.text}"',
+                  ? AppLocalizations.of(context)!.noPokemonToShow
+                  : AppLocalizations.of(context)!.noPokemonFound(_searchController.text),
               style: AppColors.title,
               textAlign: TextAlign.center,
             ),
@@ -237,15 +238,25 @@ class _SearchScreenState extends State<SearchScreen> {
         return PokemonCard(
           pokemon: pokemon,
           onTap: () async {
-            final details = await widget.apiService.fetchPokemonDetails(
-              pokemon.id,
-            );
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => PokemonDetailScreen(pokemon: details),
-              ),
-            );
+            try {
+              final details = await widget.dbService.getPokemonDetails(
+                pokemon.id,
+              );
+              if (context.mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PokemonDetailScreen(pokemon: details),
+                  ),
+                );
+              }
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(AppLocalizations.of(context)!.errorLoadingDetails(e.toString()))),
+                );
+              }
+            }
           },
         );
       },

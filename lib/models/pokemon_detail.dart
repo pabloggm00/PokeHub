@@ -1,41 +1,22 @@
-import 'package:hive/hive.dart';
-
-part 'pokemon_detail.g.dart';
-
-@HiveType(typeId: 1)
 class PokemonDetail {
-  @HiveField(0)
   final int id;
-  @HiveField(1)
-  final String speciesName; // nombre en español de la especie
-  @HiveField(2)
-  final String formName; // nombre interno de la forma
-  @HiveField(3)
+  final String speciesName;
+  final String formName;
   final String imageUrl;
-  @HiveField(4)
   final String shinyImageUrl;
-  @HiveField(5)
   final List<String> types;
-  @HiveField(6)
   final double height;
-  @HiveField(7)
   final double weight;
-  @HiveField(8)
   final List<String> abilities;
-  @HiveField(9)
   final Map<String, int> stats;
-  @HiveField(10)
   final String description;
-  @HiveField(11)
   final List<List<String>> evolutionChain;
-  @HiveField(12)
   final Map<String, String> evolutionImages;
-  @HiveField(13)
+  final Map<String, int> evolutionIds;
   final Map<String, String> abilityDescriptions;
-  @HiveField(14)
-  final Map<String, String> varieties; // nuevas variedades con imágenes
-  @HiveField(15)
-  final Map<String, String> evolutionDetails; // detalles de cómo evoluciona cada Pokémon en la cadena
+  final Map<String, String> varieties;
+  final Map<String, int> varietyIds;
+  final Map<String, String> evolutionDetails;
 
   PokemonDetail({
     required this.id,
@@ -51,8 +32,10 @@ class PokemonDetail {
     required this.description,
     required this.evolutionChain,
     required this.evolutionImages,
+    required this.evolutionIds,
     required this.abilityDescriptions,
     required this.varieties,
+    required this.varietyIds,
     required this.evolutionDetails,
   });
 
@@ -72,8 +55,10 @@ class PokemonDetail {
       evolutionChain: (json['evolutionChain'] as List).map((chain) => 
         List<String>.from(chain as List)).toList(),
       evolutionImages: Map<String, String>.from(json['evolutionImages'] ?? {}),
+      evolutionIds: Map<String, int>.from(json['evolutionIds'] ?? {}),
       abilityDescriptions: Map<String, String>.from(json['abilityDescriptions'] ?? {}),
       varieties: Map<String, String>.from(json['varieties'] ?? {}),
+      varietyIds: Map<String, int>.from(json['varietyIds'] ?? {}),
       evolutionDetails: Map<String, String>.from(json['evolutionDetails'] ?? {}),
     );
   }
@@ -93,8 +78,10 @@ class PokemonDetail {
       'description': description,
       'evolutionChain': evolutionChain,
       'evolutionImages': evolutionImages,
+      'evolutionIds': evolutionIds,
       'abilityDescriptions': abilityDescriptions,
       'varieties': varieties,
+      'varietyIds': varietyIds,
       'evolutionDetails': evolutionDetails,
     };
   }
