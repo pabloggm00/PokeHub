@@ -19,14 +19,6 @@ Una Pokédex moderna y elegante construida con **Flutter**, que consume datos de
   - Evoluciones con imágenes
 - ✨ Modo **Shiny** con cambio de sprite
 - 🎨 UI moderna, responsiva y con gradientes según el tipo de Pokémon
-
----
-
-## 🛠️ Tecnologías utilizadas
-
-- **Flutter** con Dart
-- **HTTP** para llamadas a la API
-- **PokeAPI** como fuente de datos
+- **Sin internet** con su propia base de datos
 - Widgets personalizados y responsivos
-- Diseño modular con buenas prácticas
 
