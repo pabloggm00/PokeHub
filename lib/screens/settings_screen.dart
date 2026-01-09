@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:math';
 import 'package:dex_app/l10n/app_localizations.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
@@ -66,12 +67,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         if (_latestVersion == null || _apkUrl == null) {
           if (mounted) _showMessage(AppLocalizations.of(context)!.couldNotGetVersionInfo);
-        } else if (_latestVersionCode != null && _currentVersionCode != null) {
-          if (_latestVersionCode! <= _currentVersionCode!) {
+        } else {
+          // Decide update availability by comparing semantic versionName (1.1.2)
+          final currentV = _currentVersion ?? '0.0.0';
+          final latestV = _latestVersion!;
+          final cmp = _compareVersionStrings(latestV, currentV);
+          if (cmp <= 0) {
             if (mounted) _showMessage(AppLocalizations.of(context)!.appIsUpToDate);
           }
-        } else if (_latestVersion == _currentVersion) {
-          if (mounted) _showMessage(AppLocalizations.of(context)!.appIsUpToDate);
+          // Note: version_code is used only by DatabaseService to decide DB replacement
         }
 
         setState(() {});
@@ -81,6 +85,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) _showMessage(AppLocalizations.of(context)!.errorGeneral(e.toString()));
     }
+  }
+
+  int _compareVersionStrings(String a, String b) {
+    final pa = a.split('.');
+    final pb = b.split('.');
+    final len = max(pa.length, pb.length);
+    for (var i = 0; i < len; i++) {
+      final ia = i < pa.length ? int.tryParse(pa[i]) ?? 0 : 0;
+      final ib = i < pb.length ? int.tryParse(pb[i]) ?? 0 : 0;
+      if (ia > ib) return 1;
+      if (ia < ib) return -1;
+    }
+    return 0;
   }
 
   Future<void> _downloadAndInstall(String? url) async {
