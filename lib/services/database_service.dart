@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/pokemon_summary.dart';
 import '../models/pokemon_detail.dart';
 
@@ -19,28 +21,46 @@ class DatabaseService {
   Future<Database> _initDatabase() async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, _dbName);
-
     // Verificar si ya existe
     final exists = await databaseExists(path);
 
-    // SIEMPRE copiar la base de datos desde assets para asegurar que está actualizada
-    // En producción, podrías usar un sistema de versiones aquí
     try {
       await Directory(dirname(path)).create(recursive: true);
     } catch (_) {}
 
-    // Eliminar la base de datos antigua si existe
-    if (exists) {
+    // Determinar si debemos copiar la BD desde assets:
+    // - Si no existe la DB en disk
+    // - O si el versionCode de la app cambió desde la última instalación (update)
+    int currentVersionCode = 0;
+    try {
+      final pkg = await PackageInfo.fromPlatform();
+      currentVersionCode = int.tryParse(pkg.buildNumber) ?? 0;
+    } catch (_) {}
+
+    final prefs = await SharedPreferences.getInstance();
+    final storedVersion = prefs.getInt('installed_version_code') ?? 0;
+
+    final shouldCopy = !exists || storedVersion != currentVersionCode;
+
+    if (shouldCopy && exists) {
+      // Borrar base de datos antigua si existe
       await deleteDatabase(path);
     }
 
-    // Copiar desde assets
-    ByteData data = await rootBundle.load('assets/database/$_dbName');
-    List<int> bytes = data.buffer.asUint8List(
-      data.offsetInBytes,
-      data.lengthInBytes,
-    );
-    await File(path).writeAsBytes(bytes, flush: true);
+    if (shouldCopy) {
+      // Copiar desde assets
+      ByteData data = await rootBundle.load('assets/database/$_dbName');
+      List<int> bytes = data.buffer.asUint8List(
+        data.offsetInBytes,
+        data.lengthInBytes,
+      );
+      await File(path).writeAsBytes(bytes, flush: true);
+
+      // Guardar versionCode para futuras comprobaciones
+      try {
+        await prefs.setInt('installed_version_code', currentVersionCode);
+      } catch (_) {}
+    }
 
     return await openDatabase(path, readOnly: true);
   }
