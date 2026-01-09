@@ -69,12 +69,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     setState(() => _downloading = true);
     try {
-      final response = await http.get(Uri.parse(url));
+      if (mounted) _showMessage('Iniciando descarga...');
+      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode != 200) {
+        if (mounted) _showMessage('Error: servidor respondió ${response.statusCode}');
+        return;
+      }
+
       final bytes = response.bodyBytes;
+      if (bytes.isEmpty) {
+        if (mounted) _showMessage('Error: archivo descargado vacío');
+        return;
+      }
+
+      if (mounted) _showMessage('Descargados ${bytes.length} bytes');
 
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/update.apk');
       await file.writeAsBytes(bytes);
+
+      if (mounted) _showMessage('Guardado: ${file.path}');
 
       await OpenFile.open(file.path);
     } catch (e) {

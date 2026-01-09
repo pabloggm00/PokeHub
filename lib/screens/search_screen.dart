@@ -42,7 +42,7 @@ class _SearchScreenState extends State<SearchScreen> {
     });
 
     try {
-      final allPokemon = await widget.dbService.getAllPokemon();
+      final allPokemon = await widget.dbService.getAllPokemonIncludeVariants();
 
       setState(() {
         _allPokemon = allPokemon;

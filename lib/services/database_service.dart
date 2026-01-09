@@ -150,6 +150,7 @@ class DatabaseService {
       SELECT
         p.id,
         ps.national_dex_number,
+        ps.generation_id as generation_id,
         p.form_name,
         COALESCE(pt.form_display_name, '') as display_name,
         pi.normal_image_url as image_url,
@@ -161,7 +162,7 @@ class DatabaseService {
       INNER JOIN pokemon_type pt2 ON p.id = pt2.pokemon_id
       INNER JOIN type t ON pt2.type_id = t.id
       WHERE p.is_default_form = 1
-      GROUP BY p.id, ps.national_dex_number, p.form_name, pi.normal_image_url
+      GROUP BY p.id, ps.national_dex_number, ps.generation_id, p.form_name, pi.normal_image_url
       ORDER BY ps.national_dex_number
     ''',
       [languageId],
@@ -177,6 +178,51 @@ class DatabaseService {
       return PokemonSummary(
         id: row['id'] as int,
         nationalDexNumber: row['national_dex_number'] as int,
+        generationId: row['generation_id'] as int,
+        name: displayName.isNotEmpty ? displayName : 'Desconocido',
+        imageUrl: imageUrl,
+        types: types,
+      );
+    }).toList();
+  }
+
+  /// Obtiene todos los Pokémon incluyendo todas las variantes (no solo la forma por defecto)
+  Future<List<PokemonSummary>> getAllPokemonIncludeVariants([int languageId = 1]) async {
+    final db = await database;
+
+    final results = await db.rawQuery(
+      '''
+      SELECT
+        p.id,
+        ps.national_dex_number,
+        ps.generation_id as generation_id,
+        p.form_name,
+        COALESCE(pt.form_display_name, '') as display_name,
+        pi.normal_image_url as image_url,
+        GROUP_CONCAT(DISTINCT t.code) as types
+      FROM pokemon p
+      INNER JOIN pokemon_species ps ON p.species_id = ps.id
+      LEFT JOIN pokemon_translation pt ON p.id = pt.pokemon_id AND pt.language_id = ?
+      LEFT JOIN pokemon_image pi ON p.id = pi.pokemon_id
+      INNER JOIN pokemon_type pt2 ON p.id = pt2.pokemon_id
+      INNER JOIN type t ON pt2.type_id = t.id
+      GROUP BY p.id, ps.national_dex_number, ps.generation_id, p.form_name, pi.normal_image_url
+      ORDER BY ps.national_dex_number
+    ''',
+      [languageId],
+    );
+
+    return results.map((row) {
+      final typesStr = row['types'] as String?;
+      final types = typesStr?.split(',').map((t) => t.trim()).toList() ?? [];
+
+      final displayName = row['display_name'] as String? ?? '';
+      final imageUrl = _normalizeImageUrl(row['image_url'] as String?);
+
+      return PokemonSummary(
+        id: row['id'] as int,
+        nationalDexNumber: row['national_dex_number'] as int,
+        generationId: row['generation_id'] as int,
         name: displayName.isNotEmpty ? displayName : 'Desconocido',
         imageUrl: imageUrl,
         types: types,
@@ -196,6 +242,7 @@ class DatabaseService {
     SELECT
       p.id,
       ps.national_dex_number,
+      ps.generation_id as generation_id,
       par.regional_dex_number,
       COALESCE(pt.form_display_name, '') as display_name,
       pi.normal_image_url as image_url,
@@ -208,7 +255,7 @@ class DatabaseService {
     INNER JOIN pokemon_type ptype ON p.id = ptype.pokemon_id
     INNER JOIN type t ON ptype.type_id = t.id
     WHERE par.region_id = ?
-    GROUP BY p.id, par.regional_dex_number
+    GROUP BY p.id, ps.national_dex_number, ps.generation_id, par.regional_dex_number
     ORDER BY par.regional_dex_number ASC
   ''',
       [languageId, regionId],
@@ -224,6 +271,7 @@ class DatabaseService {
       return PokemonSummary(
         id: row['id'] as int,
         nationalDexNumber: row['national_dex_number'] as int,
+        generationId: row['generation_id'] as int,
         name: displayName.isNotEmpty ? displayName : 'Desconocido',
         imageUrl: imageUrl,
         types: types,
@@ -243,6 +291,7 @@ class DatabaseService {
       SELECT
         p.id,
         ps.national_dex_number,
+        ps.generation_id as generation_id,
         p.form_name,
         COALESCE(pt.form_display_name, '') as display_name,
         pi.normal_image_url as image_url,
@@ -256,7 +305,7 @@ class DatabaseService {
       LEFT JOIN pokemon_type pt2 ON p.id = pt2.pokemon_id
       LEFT JOIN type t2 ON pt2.type_id = t2.id
       WHERE p.is_default_form = 1 AND t.code = ?
-      GROUP BY p.id, ps.national_dex_number, p.form_name, pi.normal_image_url
+      GROUP BY p.id, ps.national_dex_number, ps.generation_id, p.form_name, pi.normal_image_url
       ORDER BY ps.national_dex_number
     ''',
       [languageId, typeCode],
@@ -272,6 +321,7 @@ class DatabaseService {
       return PokemonSummary(
         id: row['id'] as int,
         nationalDexNumber: row['national_dex_number'] as int,
+        generationId: row['generation_id'] as int,
         name: displayName.isNotEmpty ? displayName : 'Desconocido',
         imageUrl: imageUrl,
         types: types,
@@ -513,11 +563,14 @@ class DatabaseService {
 
     final varieties = <String, String>{};
     final varietyIds = <String, int>{};
+
     for (var row in varietiesResult) {
       final id = row['id'] as int;
       final displayName = row['display_name'] as String;
+print(id);
       final imageUrl = _normalizeImageUrl(row['image_url'] as String?);
 
+      
       if (displayName.isNotEmpty) {
         varieties[displayName] = imageUrl;
         varietyIds[displayName] = id;
@@ -558,6 +611,7 @@ class DatabaseService {
       SELECT
         p.id,
         ps.national_dex_number,
+        ps.generation_id as generation_id,
         p.form_name,
         COALESCE(pt.form_display_name, '') as display_name,
         pi.normal_image_url as image_url,
@@ -570,7 +624,7 @@ class DatabaseService {
       INNER JOIN type t ON pt2.type_id = t.id
       WHERE p.is_default_form = 1
         AND (LOWER(pt.form_display_name) LIKE LOWER(?) OR CAST(ps.national_dex_number AS TEXT) LIKE ?)
-      GROUP BY p.id, ps.national_dex_number, p.form_name, pi.normal_image_url
+      GROUP BY p.id, ps.national_dex_number, ps.generation_id, p.form_name, pi.normal_image_url
       ORDER BY ps.national_dex_number
       LIMIT 50
     ''',
@@ -587,6 +641,7 @@ class DatabaseService {
       return PokemonSummary(
         id: row['id'] as int,
         nationalDexNumber: row['national_dex_number'] as int,
+        generationId: row['generation_id'] as int,
         name: displayName.isNotEmpty ? displayName : 'Desconocido',
         imageUrl: imageUrl,
         types: types,

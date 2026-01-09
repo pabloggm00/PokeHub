@@ -28,6 +28,8 @@ class _PokemonDetailScreenState extends State<PokemonDetailScreen> {
     for (int i = 0; i < chain.length; i++) {
       final name = chain[i];
       final imageUrl = widget.pokemon.evolutionImages[name] ?? '';
+      // Debug: mostrar ruta de imagen de la evolución
+      print('DEBUG: evolution image for $name -> $imageUrl');
 
       // Agregar el Pokémon
       evolutionWidgets.add(
@@ -285,6 +287,10 @@ class _PokemonDetailScreenState extends State<PokemonDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final gradient = AppColors.typeGradient(widget.pokemon.types);
+    // Debug: mostrar qué imagen principal se está usando (normal / shiny)
+    final mainImagePath = showShiny ? widget.pokemon.shinyImageUrl : widget.pokemon.imageUrl;
+    // Imprime en consola para depuración
+    print('DEBUG: main image path="$mainImagePath" showShiny=$showShiny');
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -857,27 +863,30 @@ class _PokemonDetailScreenState extends State<PokemonDetailScreen> {
                                           child: Padding(
                                             padding: const EdgeInsets.all(8.0),
                                             child: Center(
-                                              child: entry.value.isNotEmpty
-                                                  ? Image.asset(
-                                                      entry.value,
-                                                      fit: BoxFit.contain,
-                                                      errorBuilder:
-                                                          (
-                                                            context,
-                                                            error,
-                                                            stackTrace,
-                                                          ) {
-                                                            return Image.asset(
-                                                              'assets/imagenes/placeholder.png',
-                                                              fit: BoxFit
-                                                                  .contain,
-                                                            );
-                                                          },
-                                                    )
-                                                  : Image.asset(
-                                                      'assets/imagenes/placeholder.png',
-                                                      fit: BoxFit.contain,
-                                                    ),
+                                              child: (() {
+                                                // Debug: mostrar ruta de imagen de la variedad (si está vacía, se mostrará placeholder)
+                                                print('DEBUG: variety image for ${entry.key} -> ${entry.value}');
+                                                return entry.value.isNotEmpty
+                                                    ? Image.asset(
+                                                        entry.value,
+                                                        fit: BoxFit.contain,
+                                                        errorBuilder:
+                                                            (
+                                                          context,
+                                                          error,
+                                                          stackTrace,
+                                                        ) {
+                                                          return Image.asset(
+                                                            'assets/imagenes/placeholder.png',
+                                                            fit: BoxFit.contain,
+                                                          );
+                                                        },
+                                                      )
+                                                    : Image.asset(
+                                                        'assets/imagenes/placeholder.png',
+                                                        fit: BoxFit.contain,
+                                                      );
+                                              })(),
                                             ),
                                           ),
                                         ),
